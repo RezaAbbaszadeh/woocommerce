@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   psalm:
@@ -61,7 +62,15 @@ jobs:
         run: |
           vendor/bin/psalm \
             --config=psalm.xml \
+            --report=psalm-results.sarif \
             --no-cache
+
+      - name: Upload Psalm results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: plugins/woocommerce/psalm-results.sarif
+          category: psalm
 
       - name: Restore modified files
         if: always()
