@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<psalm
+    xmlns="https://getpsalm.org/schema/config"
+    resolveFromConfigFile="true"
+    phpVersion="7.4"
+    arrayCache="false"
+    findUnusedCode="false"
+    findUnusedBaselineEntry="false"
+    allFunctionsGlobal="true"
+    hideExternalErrors="true"
+>
+    <projectFiles>
+        <file name="woocommerce.php"/>
+        <directory name="src"/>
+        <directory name="includes"/>
+    </projectFiles>
+
+    <stubs>
+        <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php"/> 
+        <file name="psalm-stubs/UnsecuredReportFiles.php"/>
+    </stubs>
+</psalm>
