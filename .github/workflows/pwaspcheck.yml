@@ -10,18 +10,6 @@ permissions:
 
 jobs:
   dependency-check:
-name: OWASP Dependency Check
-
-on:
-  pull_request:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  security-events: write
-
-jobs:
-  dependency-check:
     runs-on: ubuntu-latest
 
     steps:
