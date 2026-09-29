@@ -1,38 +1,38 @@
 name: Semgrep Community Edition
-
 on:
   pull_request:
   push:
     branches:
       - trunk
   workflow_dispatch:
-
 permissions:
   contents: read
   security-events: write
-
 jobs:
   semgrep:
     runs-on: ubuntu-latest
-
     container:
       image: semgrep/semgrep
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
       - name: Run Semgrep
+        id: semgrep
+        continue-on-error: true
         run: |
           semgrep scan \
             --config=p/php \
             --config=p/wordpress \
             --sarif \
             --output=semgrep-results.sarif \
+            --error \
             plugins/woocommerce
-
-      - name: Upload Semgrep results to GitHub
+      - name: Upload Semgrep results
+        if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep
+      - name: Fail workflow if Semgrep found issues
+        if: steps.semgrep.outcome == 'failure'
+        run: exit 1
