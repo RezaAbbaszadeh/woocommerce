@@ -10,6 +10,18 @@ permissions:
 
 jobs:
   dependency-check:
+name: OWASP Dependency Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  dependency-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,20 +31,19 @@ jobs:
       - name: Run OWASP Dependency Check
         id: dependency_check
         continue-on-error: true
-        uses: dependency-check/Dependency-Check_Action@1.1.0
+        uses: dependency-check/Dependency-Check_Action@main
         with:
           project: 'WooCommerce'
           path: 'plugins/woocommerce'
           format: 'SARIF'
-          others: >
+          args: >
             --failOnCVSS 7
             --exclude "**/node_modules/**"
             --exclude "**/vendor/**"
             --disableNodeAudit
             --disableNodeJS
             --disableYarnAudit
-            --ossIndexUrl "https://api.guide.sonatype.com"
-            --ossIndexUser "${{ vars.SONATYPE_GUIDE_USER }}"
+            --ossIndexUrl https://api.guide.sonatype.com
             --ossIndexPassword "${{ secrets.SONATYPE_GUIDE_PAT }}"
 
       - name: Upload Dependency Check results
