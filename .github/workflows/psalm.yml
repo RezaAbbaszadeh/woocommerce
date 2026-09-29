@@ -1,0 +1,86 @@
+name: Psalm
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  psalm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer
+
+      - name: Install WooCommerce dependencies
+        working-directory: plugins/woocommerce
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install Psalm
+        working-directory: plugins/woocommerce
+        run: |
+          composer bin psalm require --dev "vimeo/psalm:^6" -W
+
+      - name: Apply temporary Psalm compatibility changes
+        working-directory: plugins/woocommerce
+        run: |
+          # Save the original Abilities API file so it can be restored later.
+          cp \
+            vendor/wordpress/abilities-api/includes/abilities-api/class-wp-ability.php \
+            /tmp/class-wp-ability.php.original
+
+          # Replace PHPDoc callable declarations that cause Psalm's
+          # CallableParamTree parsing failure.
+          sed -i \
+            's/@var callable( mixed $input= ): (mixed|WP_Error)/@var callable(mixed=): (mixed|WP_Error)/' \
+            vendor/wordpress/abilities-api/includes/abilities-api/class-wp-ability.php
+
+          sed -i \
+            's/@var callable( mixed $input= ): (bool|WP_Error)/@var callable(mixed=): (bool|WP_Error)/' \
+            vendor/wordpress/abilities-api/includes/abilities-api/class-wp-ability.php
+
+          # Temporarily rename the WooCommerce file that causes Psalm
+          # to terminate during scanning.
+          mv \
+            src/Internal/Admin/Notes/UnsecuredReportFiles.php \
+            src/Internal/Admin/Notes/UnsecuredReportFiles.php.disabled
+
+      - name: Run Psalm
+        id: psalm
+        continue-on-error: true
+        working-directory: plugins/woocommerce
+        run: |
+          vendor/bin/psalm \
+            --config=psalm.xml \
+            --no-cache
+
+      - name: Restore modified files
+        if: always()
+        working-directory: plugins/woocommerce
+        run: |
+          # Restore the original Abilities API file.
+          if [ -f /tmp/class-wp-ability.php.original ]; then
+            mv \
+              /tmp/class-wp-ability.php.original \
+              vendor/wordpress/abilities-api/includes/abilities-api/class-wp-ability.php
+          fi
+
+          # Restore the original WooCommerce source filename.
+          if [ -f src/Internal/Admin/Notes/UnsecuredReportFiles.php.disabled ]; then
+            mv \
+              src/Internal/Admin/Notes/UnsecuredReportFiles.php.disabled \
+              src/Internal/Admin/Notes/UnsecuredReportFiles.php
+          fi
+
+      - name: Fail workflow if Psalm found issues
+        if: steps.psalm.outcome == 'failure'
+        run: exit 1
