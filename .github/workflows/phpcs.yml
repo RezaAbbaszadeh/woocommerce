@@ -1,0 +1,60 @@
+name: PHP_CodeSniffer
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phpcs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer, cs2pr
+
+      - name: Install dependencies
+        working-directory: plugins/woocommerce
+        run: composer install --no-interaction --prefer-dist
+
+      # Install PHPCS and the required coding standards if the project
+      # does not already provide them.
+      #
+      # - name: Install PHP_CodeSniffer
+      #   working-directory: plugins/woocommerce
+      #   run: |
+      #     composer config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+      #     composer require --dev \
+      #       squizlabs/php_codesniffer:^3.13.5 \
+      #       wp-coding-standards/wpcs:^3.4 \
+      #       woocommerce/woocommerce-sniffs:^2.0 \
+      #       slevomat/coding-standard:"~8.22.0" \
+      #       -W
+
+      - name: Run PHP_CodeSniffer
+        id: phpcs
+        continue-on-error: true
+        working-directory: plugins/woocommerce
+        run: |
+          vendor/bin/phpcs \
+            --standard=phpcs.xml \
+            --report=full \
+            --report-checkstyle=phpcs-report.xml \
+            .
+
+      - name: Add PHPCS annotations to GitHub
+        if: always()
+        working-directory: plugins/woocommerce
+        run: cs2pr phpcs-report.xml
+
+      - name: Fail workflow if PHPCS found issues
+        if: steps.phpcs.outcome == 'failure'
+        run: exit 1
