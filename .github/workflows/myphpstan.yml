@@ -22,9 +22,11 @@ jobs:
           tools: composer
 
       - name: Install dependencies
+        working-directory: plugins/woocommerce
         run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPStan
+        working-directory: plugins/woocommerce
         run: |
           vendor/bin/phpstan analyse \
             --configuration=phpstan.neon \
